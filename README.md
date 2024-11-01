@@ -25,8 +25,7 @@ docker login
 ```
 Then, use the following commands to build and deploy the Docker image to Docker Hub:
 ```sh
-mvn clean install
-mvn docker:push
+mvn deploy
 ```
 After the build is complete, verify that the Docker Hub contains the application's image.
 
@@ -84,7 +83,7 @@ After completing your experiments, remember to delete all resources, including t
 Before deploying the application, complete the following preliminary steps:
 
 1. **AWS Account**: If you do not already have an AWS account, register at [https://aws.amazon.com](https://aws.amazon.com).
-2. **AWS Credentials**: Obtain your `aws_access_key_id` and `aws_secret_access_key` from the AWS Management Console and save them in the `.aws/credentials` file. Detailed instructions are provided in a separate file.
+2. **AWS Credentials**: Obtain your `aws_access_key_id` and `aws_secret_access_key` from the AWS Management Console and save them in the `.aws/credentials` file. Detailed instructions are provided in `.deployment/aws_credentials_instruction.md`.
 3. **EC2 Key Pair**: It is recommended to have an EC2 Key Pair for SSH access to the instance. You can create one using the AWS Management Console. Detailed instructions are available in `.deployment/keypair_instruction.md`.
 4. **Docker Image**: The application is deployed as a Docker container, requiring the image to be available in a public Docker registry. A public repository has been created for this project, but the image might be removed after a few weeks. You can use your own Docker Hub repository by building and publishing the image as described in the "Building the Project" section. If using your own repository, edit the `UserData` section in the `WebChatDemoEC2Instance` module in `template.yaml` to replace `avchesnokov/web-chat-demo` with your own repository.
 
