@@ -1,0 +1,30 @@
+:root {
+  --primary-color: #4caf50;
+  --primary-hover: #45a045;
+  --error-color: #ff4b4b;
+  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 6px 15px rgba(0, 0, 0, 0.2);
+  --bg-light: #f0f2f5;
+  --bg-white: #ffffff;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --message-bg: white;
+  --message-own-bg: #eeffde;
+  --chat-bg: #e3ffd1;
+  --system-message-color: #4a76a8;
+  --error-message-color: #dc3545;
+  --username-color: #3a9bf1;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}

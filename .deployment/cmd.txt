@@ -1,0 +1,18 @@
+aws cloudformation delete-stack --stack-name webchat-demo --region eu-central-1 --profile demo
+aws cloudformation wait stack-delete-complete --stack-name webchat-demo --region eu-central-1 --profile demo
+
+sam delete --stack-name webchat-demo --region eu-central-1 --profile demo
+
+sam deploy --stack-name webchat-demo --region eu-central-1 --capabilities CAPABILITY_IAM --profile demo
+
+
+
+
+
+User Data logs
+sudo cat /var/log/user-data.log
+sudo cat /var/log/cloud-init-output.log
+
+sudo docker ps -a
+sudo docker logs web-chat-demo
+sudo docker logs --tail 100 web-chat-demo

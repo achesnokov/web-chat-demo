@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local
+    container_name: dynamodb
+    ports:
+      - "8000:8000"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.jvm
+    container_name: backend
+    ports:
+      - "8080:8081"
+    environment:
+      - QUARKUS_PROFILE=dev
+      - QUARKUS_DYNAMODB_ENDPOINT_OVERRIDE=http://dynamodb:8000
+      - QUARKUS_DYNAMODB_AWS_CREDENTIALS_TYPE=static
+      - QUARKUS_DYNAMODB_AWS_CREDENTIALS_STATIC_PROVIDER_ACCESS_KEY_ID=mockkey
+      - QUARKUS_DYNAMODB_AWS_CREDENTIALS_STATIC_PROVIDER_SECRET_ACCESS_KEY=mocksecret
+      - REGION=us-east-1
+    depends_on:
+      - dynamodb

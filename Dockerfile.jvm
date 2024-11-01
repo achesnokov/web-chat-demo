@@ -1,0 +1,61 @@
+# Dockerfile for JVM Mode
+
+# Stage 1: Build the frontend
+FROM node:18 AS frontend-build
+
+WORKDIR /frontend
+
+RUN echo "Starting frontend build..."
+
+# Copy frontend source files
+#COPY frontend/package.json frontend/package-lock.json ./
+COPY frontend/package.json ./
+
+RUN echo "Package.json copied" && ls -la
+
+RUN npm install
+RUN echo "NPM install completed" && ls -la node_modules
+
+COPY frontend/ ./
+RUN echo "Frontend source copied" && ls -la
+
+RUN npm run build
+RUN echo "Frontend build completed" && ls -la build
+
+# Stage 2: Build the backend
+#FROM quay.io/quarkus/quarkus-jvm-micro-image:3.15.1-java17 AS backend-build
+#FROM registry.access.redhat.com/ubi8/openjdk-17:1.20 AS backend-build
+#FROM quay.io/quarkus/ubi-quarkus-mandrel:21.3-java17 AS backend-build
+FROM maven:3.9.5-eclipse-temurin-17 AS backend-build
+
+WORKDIR /work
+
+# Copy the Maven build files
+COPY backend/pom.xml ./
+
+RUN mvn --version
+
+# Download dependencies to utilize Docker cache if pom.xml did not change
+RUN mvn dependency:go-offline
+# Copy the source code and build the application in JVM mode
+COPY backend/src ./src
+# Copy the built frontend into the backend resources
+COPY --from=frontend-build /frontend/build ./src/main/resources/META-INF/resources
+RUN echo "Checking frontend files in backend:" && \
+    ls -la src/main/resources/META-INF/resources
+
+# Build the application in JVM mode
+RUN mvn clean package -DskipTests
+
+# Stage 3: Create the runtime container
+#FROM quay.io/quarkus/quarkus-jvm-micro-image:3.15.1 AS runtime
+FROM registry.access.redhat.com/ubi8/openjdk-17:1.20 AS runtime
+
+# Copy backend artifacts
+COPY --from=backend-build /work/target/quarkus-app /app
+
+# Set the working directory
+WORKDIR /app
+
+# Set the default command to run the application in JVM mode
+CMD ["java", "-jar", "/app/quarkus-run.jar", "-Dquarkus.http.host=0.0.0.0"]

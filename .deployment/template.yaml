@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS SAM template for deploying the web-chat-demo application using EC2
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: String
+    Default: webchat-demo
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3.small
+  AwsAmi:
+    Description: AWS Linux AMI
+    Type: String
+    Default: ami-0f3a22468a3535271  # Amazon Linux 2 AMI (HVM), SSD Volume Type. CHANGE IT TO YOUR REGION
+ 
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID (default VPC)
+    Default: vpc-070cca5e767a2773d #don't use it if you are not Alex Chesnokov
+
+  DockerImageTag:
+    Description: Docker image tag to deploy
+    Type: String
+    Default: latest
+
+Resources:
+  WebChatDemoEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AwsAmi
+      KeyName: !Ref KeyName  # KeyPair must be created manually beforehand
+      SecurityGroupIds:
+        - !Ref WebChatDemoSecurityGroup
+      IamInstanceProfile: !Ref WebChatDemoInstanceProfile
+      Tags:
+        - Key: Name
+          Value: WebChatDemo
+        - Key: Environment
+          Value: Production
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          
+          yum update -y
+          yum install -y docker
+          
+          systemctl enable docker
+          systemctl start docker
+          
+          systemctl status docker
+          
+          until docker info; do
+            echo "Waiting for Docker to start..."
+            sleep 1
+          done
+          
+          IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+          IP_DASHED=$(echo $IP | tr . -)
+          DNS_NAME='ec2-'$IP_DASHED'.${AWS::Region}.compute.amazonaws.com'
+          WEBSOCKET_HOST='ws://'$DNS_NAME':8080'
+          
+          docker run -d \
+            --name web-chat-demo \
+            --restart unless-stopped \
+            -p 8080:8080 \
+            -e REGION=${AWS::Region} \
+            -e AWS_DEFAULT_REGION=${AWS::Region} \
+            -e WEBSOCKET_HOST=$WEBSOCKET_HOST \
+            avchesnokov/web-chat-demo:${DockerImageTag}
+          
+          docker ps | grep web-chat-demo
+
+  WebChatDemoSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Enable HTTP and WebSocket access
+      Tags:
+        - Key: Name
+          Value: WebChatDemo
+        - Key: Environment
+          Value: Production
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp # temporary for debugging
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  WebChatDemoInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WebChatDynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:CreateTable
+                  - dynamodb:DescribeTable
+                  - dynamodb:DeleteTable
+                  - dynamodb:BatchGetItem          # does not require now
+                  - dynamodb:BatchWriteItem        # does not require now
+                  - dynamodb:ListTables            # does not require now
+                Resource:
+                  !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*"
+
+  WebChatDemoInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref WebChatDemoInstanceRole
+
+Outputs:
+  EC2PublicIP:
+    Description: "Public IP of the WebChatDemo EC2 instance"
+    Value: !GetAtt WebChatDemoEC2Instance.PublicIp
+  WebChatUrl:
+    Description: "Web Chat application URL"
+    Value: !Sub "http://${WebChatDemoEC2Instance.PublicDnsName}:8080"
+  WebSocketUrl:
+    Description: "WebSocket endpoint URL"
+    Value: !Sub "ws://${WebChatDemoEC2Instance.PublicDnsName}:8080"
+  SSHCommand:
+    Description: "SSH command to connect to the instance"
+    Value: !Sub ssh -i ${KeyName}.pem ec2-user@${WebChatDemoEC2Instance.PublicDnsName}

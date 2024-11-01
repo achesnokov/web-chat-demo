@@ -1,0 +1,143 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://www.maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.achesnokov.demo</groupId>
+    <artifactId>web-chat-parent</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>web-chat-demo-parent</name>
+    <build>
+        <plugins>
+            <!-- Frontend plugin to handle npm build -->
+<!--
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.12.0</version>
+                <executions>
+
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v18.20.0</nodeVersion>
+                            <npmVersion>10.5.0</npmVersion>
+                            <installDirectory>${project.basedir}/frontend</installDirectory>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>npm install and build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install &amp;&amp; run build</arguments>
+                            <workingDirectory>${project.basedir}/frontend</workingDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <!-- Fabric8 Docker plugin to build the final image using Dockerfile -->
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.36.0</version>
+                <configuration>
+                    <images>
+                        <image>
+                            <name>${dockerhub.username}/web-chat-demo</name>
+                            <build>
+                                <dockerFile>${project.basedir}/Dockerfile.jvm</dockerFile>
+                                <args>
+                                    <buildArg>--progress=plain</buildArg>
+                                </args>
+                                <tags>
+                                    <tag>${project.version}</tag>
+                                </tags>
+                            </build>
+<!--                            <registry>docker.io</registry>-->
+                        </image>
+                    </images>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>docker-build</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>docker-publish</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
+                        <version>0.36.0</version>
+                        <configuration>
+                            <images>
+                                <image>
+                                    <name>${dockerhub.username}/web-chat-demo-native</name>
+                                    <build>
+                                        <dockerFile>${project.basedir}/Dockerfile.native</dockerFile>
+                                        <tags>
+                                            <tag>native</tag>
+                                        </tags>
+                                    </build>
+                                    <registry>${dockerhub.username}</registry>
+                                </image>
+                            </images>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>docker-build</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>docker-publish</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>push</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <properties>
+        <dockerhub.username>avchesnokov</dockerhub.username>
+    </properties>
+
+</project>

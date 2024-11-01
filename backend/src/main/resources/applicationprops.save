@@ -1,0 +1,29 @@
+
+#mp.jwt.verify.publickey.location=classpath:META-INF/resources/publicKey.pem
+mp.jwt.verify.signature.secret=supersecretkey123456
+mp.jwt.verify.issuer=achesnokov
+mp.jwt.expiration.grace=60
+
+quarkus.smallrye-jwt.enabled=true
+
+quarkus.dynamodb.aws.region=${REGION:us-east-1}
+
+quarkus.dynamodb.aws.credentials.type=static
+quarkus.dynamodb.aws.credentials.static-provider.access-key-id=mock_key
+quarkus.dynamodb.aws.credentials.static-provider.secret-access-key=mock_secret
+quarkus.dynamodb.endpoint-override=http://localhost:8000
+
+
+#%dev.quarkus.dynamodb.aws.credentials.type=static
+#%dev.quarkus.dynamodb.aws.credentials.static-provider.access-key-id=mock_key
+#%dev.quarkus.dynamodb.aws.credentials.static-provider.secret-access-key=mock_secret
+#%dev.quarkus.dynamodb.endpoint-override=http://localhost:8000
+
+# %prod.quarkus.dynamodb.aws.credentials.type=default
+# %prod.quarkus.dynamodb.aws.region=${REGION:us-east-1}
+
+
+quarkus.log.level=DEBUG
+quarkus.log.category."io.quarkus".level=DEBUG
+quarkus.log.category."io.smallrye.jwt".level=DEBUG
+quarkus.log.category."org.achesnokov.demo".level=DEBUG

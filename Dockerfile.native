@@ -1,0 +1,44 @@
+# Dockerfile for Native Mode
+
+# Stage 1: Build the frontend
+FROM node:18 AS frontend-build
+
+WORKDIR /frontend
+
+# Copy frontend source files
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
+
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Build the backend
+#FROM quay.io/quarkus/ubi-quarkus-mandrel:22.3-java17 AS backend-build
+FROM graalvm AS backend-build
+
+WORKDIR /work
+
+# Copy the Maven build files
+COPY backend/pom.xml ./
+# Download dependencies to utilize Docker cache if pom.xml did not change
+RUN mvn dependency:go-offline
+
+
+# Copy the source code
+COPY backend/src ./src
+
+# Copy the built frontend into the backend resources
+COPY --from=frontend-build /frontend/build ./src/main/resources/META-INF/resources
+
+
+# Build the application in native mode
+RUN ./mvnw package -Pnative -DskipTests
+
+# Stage 3: Create the runtime container
+FROM alpine AS native-runtime
+
+# Copy the native executable
+COPY --from=backend-build /work/target/*-runner /app/web-chat-demo
+
+# Set the default command to run the native application
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]
